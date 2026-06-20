@@ -6,3 +6,11 @@ node_modules
 # CDK asset staging directory
 .cdk.staging
 cdk.out
+
+# IDE
+.idea/
+.claude/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
