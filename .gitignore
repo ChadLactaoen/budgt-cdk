@@ -14,3 +14,11 @@ cdk.out
 # Frontend
 frontend/node_modules/
 frontend/dist/
+
+.mcp.json
+temp/
+
+# Local dev env (Cognito ids are public identifiers, but keep them untracked)
+.env
+.env.*.local
+.env.local

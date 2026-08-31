@@ -1,0 +1,60 @@
+@import "tailwindcss";
+@import "./styles/tokens/colors.css";
+@import "./styles/tokens/typography.css";
+@import "./styles/tokens/spacing.css";
+@import "./styles/tokens/borders.css";
+@import "./styles/tokens/shadows.css";
+@import "./styles/tokens/motion.css";
+@import "./styles/tokens/base.css";
+@import "./styles/heeth.css";
+
+@plugin "daisyui";
+
+/* Heeth expressed as a DaisyUI theme.
+ *
+ * This carries the palette, radii and border width so that views not yet rebuilt on
+ * the Heeth components still read as one app. It cannot carry the offset shadows,
+ * press physics, display type or solid white borders — those live in heeth.css and
+ * in components/heeth/.
+ *
+ * Note the base-100/200 inversion: in Heeth the surface stack steps LIGHTER as it
+ * comes forward, so cards are lighter than the canvas they sit on. */
+@plugin "daisyui/theme" {
+  name: "heeth";
+  default: true;
+  prefersdark: true;
+  color-scheme: "dark";
+
+  --color-base-100: #2440B8;          /* --surface-card   */
+  --color-base-200: #16308C;          /* --surface-canvas */
+  --color-base-300: #0C1B58;          /* --surface-sunken */
+  --color-base-content: #DCE2FF;      /* --text-body      */
+
+  --color-primary: #2EE6D6;           /* --lime-500, the single brand fill */
+  --color-primary-content: #0A1240;
+  --color-secondary: #B36BFF;         /* --peri-500  */
+  --color-secondary-content: #0A1240;
+  --color-accent: #FFD23F;            /* --marigold-500 */
+  --color-accent-content: #0A1240;
+  --color-neutral: #1D3AA6;           /* --surface-raised */
+  --color-neutral-content: #DCE2FF;
+
+  --color-info: #C79BFF;
+  --color-info-content: #0A1240;
+  --color-success: #2EE6D6;
+  --color-success-content: #0A1240;
+  --color-warning: #FFD23F;
+  --color-warning-content: #0A1240;
+  --color-error: #FF4FA3;             /* --coral-500 */
+  --color-error-content: #0A1240;
+
+  /* Nothing rounder than 4px exists in this system. */
+  --radius-selector: 4px;
+  --radius-field: 4px;
+  --radius-box: 4px;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 2px;
+  --depth: 0;
+  --noise: 0;
+}

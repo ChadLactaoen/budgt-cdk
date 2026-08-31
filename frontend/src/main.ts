@@ -1,14 +1,27 @@
 import { createApp } from 'vue';
 import { Amplify } from 'aws-amplify';
 import App from './App.vue';
+import router from './router';
+import { loadConfig } from './config';
+import './style.css';
 
-Amplify.configure({
-  Auth: {
-    Cognito: {
-      userPoolId: 'us-west-2_Kzfi6ZWaA',
-      userPoolClientId: '4sgvqc4skkvmntjrch9d7mlldm',
+async function bootstrap() {
+  const config = await loadConfig();
+  Amplify.configure({
+    Auth: {
+      Cognito: {
+        userPoolId: config.userPoolId,
+        userPoolClientId: config.userPoolClientId,
+      },
     },
-  },
-});
+  });
+  createApp(App).use(router).mount('#app');
+}
 
-createApp(App).mount('#app');
+bootstrap().catch((e) => {
+  const message = e instanceof Error ? e.message : 'Failed to start';
+  document.getElementById('app')!.innerHTML =
+    `<div class="min-h-screen flex items-center justify-center p-4">
+       <div class="alert alert-error max-w-md">${message}</div>
+     </div>`;
+});

@@ -1,0 +1,52 @@
+:root{
+/* ---- Raw ink scale: navy-tinted, dark-first ---- */
+--ink-000:#060B2E;--ink-050:#0A1240;--ink-100:#122062;--ink-200:#1B2E80;--ink-300:#28409E;--ink-400:#3A55BC;--ink-500:#5A73D0;--ink-600:#8393D6;--ink-700:#B8C4F0;--ink-800:#D2DAFA;--ink-900:#DCE2FF;--ink-999:#FFFFFF;
+/* ---- Cobalt: the canvas and every surface above it ---- */
+--cobalt-900:#0C1B58;--cobalt-800:#16308C;--cobalt-700:#1D3AA6;--cobalt-600:#2440B8;--cobalt-500:#2F50D0;--cobalt-400:#3A5CDC;
+/* ---- Brand accents: 90s pop. Every -500 carries near-navy text as a fill. ---- */
+--lime-400:#6FF5E7;--lime-500:#2EE6D6;--lime-600:#12B8AA;--lime-700:#0A8C82;--lime-900:#06332F;
+--marigold-400:#FFE066;--marigold-500:#FFD23F;--marigold-600:#E0A800;--marigold-700:#A87A00;--marigold-900:#3A2A02;
+--coral-300:#FFB0D4;--coral-400:#FF7FBC;--coral-500:#FF4FA3;--coral-600:#E01F7C;--coral-700:#B0135E;--coral-900:#4A0F2C;
+--peri-400:#C79BFF;--peri-500:#B36BFF;--peri-600:#8A3FE0;--peri-700:#6A25B8;--peri-900:#2A1152;
+/* ---- Semantic: surfaces. Cards sit LIGHTER than the canvas. ---- */
+--surface-canvas:var(--cobalt-800);
+--surface-raised:var(--cobalt-700);
+--surface-card:var(--cobalt-600);
+--surface-sunken:var(--cobalt-900);
+--surface-inverse:var(--ink-999);
+--surface-accent:var(--lime-500);
+--surface-hover:var(--cobalt-500);
+--surface-press:var(--cobalt-400);
+/* ---- Semantic: text ---- */
+--text-strong:var(--ink-999);
+--text-body:var(--ink-900);
+--text-muted:var(--ink-800);
+--text-faint:var(--ink-700);
+--text-on-accent:var(--ink-050);
+--text-on-inverse:var(--ink-050);
+--text-link:var(--lime-500);
+--text-link-hover:var(--lime-400);
+/* ---- Semantic: lines ---- */
+--line-hard:var(--ink-999);
+--line-card:var(--ink-999);
+--line-subtle:var(--cobalt-400);
+--line-accent:var(--lime-500);
+/* ---- Semantic: money + status ---- */
+--money-in:var(--lime-500);
+--money-out:var(--coral-300);
+--money-neutral:var(--ink-800);
+--status-ok:var(--lime-500);--status-ok-bg:var(--lime-900);
+--status-warn:var(--marigold-500);--status-warn-bg:var(--marigold-900);
+--status-over:var(--coral-300);--status-over-bg:var(--coral-900);
+--status-info:var(--peri-400);--status-info-bg:var(--peri-900);
+/* ---- Category chips (the six default envelopes) ---- */
+--cat-bills:var(--coral-500);--cat-entertainment:var(--marigold-500);--cat-essentials:var(--lime-500);--cat-miscellaneous:var(--peri-500);--cat-savings:#FFB38A;--cat-subscriptions:#7CFFB2;
+/* ---- Focus ---- */
+--focus-ring:var(--marigold-500);
+}
+/* Night is a secondary theme: the cobalt drained out to navy-black. */
+[data-theme="night"]{
+--surface-canvas:var(--ink-050);--surface-raised:var(--ink-100);--surface-card:var(--ink-200);--surface-sunken:var(--ink-000);
+--surface-hover:var(--ink-300);--surface-press:var(--ink-400);
+--line-subtle:var(--ink-300);--line-card:var(--ink-400);
+}

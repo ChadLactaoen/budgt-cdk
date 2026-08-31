@@ -1,0 +1,10 @@
+:root{
+--dur-instant:80ms; /* @kind other */
+--dur-fast:140ms; /* @kind other */
+--dur:220ms; /* @kind other */
+--dur-slow:340ms; /* @kind other */
+--ease-snap:cubic-bezier(.2,.9,.2,1); /* @kind other */
+--ease-out:cubic-bezier(0,0,.2,1); /* @kind other */
+--ease-step:steps(3,end); /* @kind other */
+--press-translate:2px;
+}

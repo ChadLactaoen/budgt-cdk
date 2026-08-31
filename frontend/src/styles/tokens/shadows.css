@@ -1,0 +1,12 @@
+:root{
+/* Neo-brutalist offsets: hard, no blur, always down-right. */
+--shadow-1:2px 2px 0 0 var(--line-hard);
+--shadow-2:4px 4px 0 0 var(--line-hard);
+--shadow-3:6px 6px 0 0 var(--line-hard);
+--shadow-accent:4px 4px 0 0 var(--lime-500);
+--shadow-coral:4px 4px 0 0 var(--coral-500);
+--shadow-press:1px 1px 0 0 var(--line-hard);
+--shadow-inset-sunken:inset 0 2px 0 0 rgba(6,11,46,.55);
+/* the only soft shadow in the system — sheets lifting off the canvas */
+--shadow-sheet:0 -8px 0 0 var(--line-hard);
+}

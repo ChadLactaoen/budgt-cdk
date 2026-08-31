@@ -1,0 +1,8 @@
+:root{
+--bw-hair:1px;--bw:2px;--bw-thick:3px;--bw-slab:4px;
+--radius-0:0px;--radius-1:4px;--radius-2:8px;--radius-pill:999px;
+--border-card:var(--bw) solid var(--line-card);
+--border-hard:var(--bw) solid var(--line-hard);
+--border-slab:var(--bw-slab) solid var(--line-hard);
+--border-subtle:var(--bw-hair) solid var(--line-subtle);
+}

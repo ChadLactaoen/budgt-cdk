@@ -1,0 +1,22 @@
+:root{
+/* families */
+--font-display:"Anton",ui-sans-serif,system-ui,sans-serif;
+--font-ui:"Public Sans",ui-sans-serif,system-ui,sans-serif;
+--font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,monospace;
+/* sizes — mobile-first ramp */
+--fs-display-xl:64px;--fs-display-l:48px;--fs-display-m:36px;--fs-display-s:28px;
+--fs-title:22px;--fs-body-l:17px;--fs-body:15px;--fs-body-s:13px;--fs-label:12px;--fs-micro:10px;
+--fs-amount-xl:56px;--fs-amount-l:32px;--fs-amount-m:20px;--fs-amount-s:15px;
+/* line heights */
+--lh-display:0.92; /* @kind font */
+--lh-title:1.15; /* @kind font */
+--lh-body:1.45; /* @kind font */
+--lh-tight:1.2; /* @kind font */
+/* weights (Public Sans variable) */
+--fw-regular:400; /* @kind font */
+--fw-medium:500; /* @kind font */
+--fw-bold:700; /* @kind font */
+--fw-black:900; /* @kind font */
+/* tracking */
+--ls-display:0.01em; /* @kind font */ --ls-caps:0.14em;--ls-label:0.06em;--ls-body:0em;--ls-amount:-0.02em;
+}

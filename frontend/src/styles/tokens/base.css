@@ -1,0 +1,13 @@
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface-canvas);color:var(--text-body);font-family:var(--font-ui);font-size:var(--fs-body);line-height:var(--lh-body);font-weight:var(--fw-medium);-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:var(--font-display);font-weight:400;line-height:var(--lh-display);letter-spacing:var(--ls-display);text-transform:uppercase;color:var(--text-strong);margin:0}
+h1{font-size:var(--fs-display-l)}h2{font-size:var(--fs-display-m)}h3{font-size:var(--fs-display-s)}h4{font-size:var(--fs-title)}
+p{margin:0;text-wrap:pretty}
+a{color:var(--text-link);text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px}
+a:hover{color:var(--text-link-hover)}
+b,strong{font-weight:var(--fw-bold)}
+:focus-visible{outline:var(--bw-thick) solid var(--focus-ring);outline-offset:2px}
+button{font:inherit}
+.heeth-mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.heeth-caps{font-family:var(--font-ui);font-weight:var(--fw-bold);font-size:var(--fs-label);letter-spacing:var(--ls-caps);text-transform:uppercase}

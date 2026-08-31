@@ -1,0 +1,10 @@
+:root{
+--space-0:0px;--space-1:2px;--space-2:4px;--space-3:8px;--space-4:12px;--space-5:16px;--space-6:20px;--space-7:24px;--space-8:32px;--space-9:40px;--space-10:56px;--space-11:72px;
+/* layout */
+--gutter:16px;            /* mobile screen side padding */
+--gutter-lg:24px;
+--stack-tight:8px;--stack:12px;--stack-loose:20px;--stack-section:32px;
+--tap-min:48px;           /* minimum hit target */
+--app-max-w:430px;        /* mobile-first canvas */
+--nav-h:72px;--header-h:56px;
+}

@@ -1,0 +1,64 @@
+/* Layer 2: the neo-brutalist rules DaisyUI's theme block cannot express.
+ * Applies to DaisyUI controls still in use by views not yet rebuilt on
+ * components/heeth/. */
+
+/* Borders are white on cobalt, never a mid-blue. DaisyUI derives border colour from
+ * base-content at low alpha, which reads as a washed-out blue here. */
+.btn,
+.card,
+.input,
+.select,
+.textarea,
+.stats {
+  border-color: var(--line-hard);
+}
+
+/* Hard offset shadows: zero blur, always down-right, always in the border colour. */
+.btn:not(.btn-ghost):not(.btn-link),
+.card {
+  box-shadow: var(--shadow-2);
+}
+
+/* The signature press: pushed into the page, never lifted. */
+.btn:not(.btn-ghost):not(.btn-link):active {
+  transform: translate(var(--press-translate), var(--press-translate));
+  box-shadow: var(--shadow-press);
+  transition:
+    transform var(--dur-instant) var(--ease-snap),
+    box-shadow var(--dur-instant) var(--ease-snap);
+}
+
+.btn {
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-label);
+  text-transform: uppercase;
+  min-height: var(--tap-min);
+}
+
+/* Utilities shared with the Heeth components. */
+.heeth-caps {
+  font-family: var(--font-ui);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-label);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+}
+
+.heeth-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Nothing bounces, springs or fades in on scroll; reduced motion drops what is left. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .btn:active {
+    transform: none;
+  }
+}
