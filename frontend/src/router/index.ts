@@ -25,16 +25,17 @@ const router = createRouter({
       name: 'home',
       redirect: () => ({ name: 'month', params: { yearMonth: currentYearMonth() } }),
     },
+    // One component serves both scopes; `name` is what tells it which it is rendering.
     {
       path: '/month/:yearMonth',
       name: 'month',
-      component: () => import('../views/MonthView.vue'),
+      component: () => import('../views/PeriodView.vue'),
       meta: { requiresAuth: true },
     },
     {
       path: '/year/:year',
       name: 'year',
-      component: () => import('../views/YearView.vue'),
+      component: () => import('../views/PeriodView.vue'),
       meta: { requiresAuth: true },
     },
     {

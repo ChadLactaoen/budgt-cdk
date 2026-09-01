@@ -2,8 +2,17 @@
 /**
  * One place where currency formatting, tabular numerals and in/out colour are decided.
  * Signed money uses + and the true minus U+2212, never a hyphen.
+ *
+ * A negative amount always keeps its minus: `showSign` governs the optional + on a
+ * positive figure, not whether the number is allowed to state that it is below zero.
+ *
+ * Privacy is applied here rather than at each call site, so a new amount cannot ship
+ * unmasked by omission. A masked amount also drops its direction colour: the sign is
+ * a fact about the figure, and leaking it would defeat the point.
  */
 import { computed } from 'vue';
+import { privacy } from '../../stores/privacy';
+import { formatAmount } from './money';
 
 const props = withDefaults(
   defineProps<{
@@ -22,25 +31,23 @@ const dir = computed(
 );
 
 const color = computed(() =>
-  dir.value === 'in' ? 'var(--money-in)' : dir.value === 'out' ? 'var(--money-out)' : 'var(--money-neutral)',
+  privacy.value
+    ? 'var(--money-neutral)'
+    : dir.value === 'in'
+      ? 'var(--money-in)'
+      : dir.value === 'out'
+        ? 'var(--money-out)'
+        : 'var(--money-neutral)',
 );
 
-const sign = computed(() =>
-  !props.showSign || dir.value === 'flat' ? '' : dir.value === 'in' ? '+' : '−',
-);
-
-const abs = computed(() =>
-  Math.abs(props.cents / 100).toLocaleString('en-GB', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }),
-);
+const text = computed(() => {
+  const plus = props.showSign && props.cents > 0 && !privacy.value ? '+' : '';
+  return plus + formatAmount(props.cents, props.currency);
+});
 </script>
 
 <template>
-  <span class="h-money heeth-mono" :class="`h-money--${size}`" :style="{ color }">
-    {{ sign }}{{ currency }}{{ abs }}
-  </span>
+  <span class="h-money heeth-mono" :class="`h-money--${size}`" :style="{ color }">{{ text }}</span>
 </template>
 
 <style scoped>

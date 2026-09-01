@@ -6,7 +6,12 @@
       "es2020",
       "dom"
     ],
-    "declaration": true,
+    // `npm run build` is a type-check only: nothing consumes tsc's output. CDK runs
+    // through ts-node, the Lambda is bundled by esbuild, and Jest by ts-jest. Emitting
+    // would drop a .js beside every .ts — invisible, because .gitignore ignores them —
+    // and Vite resolves `@shared/categories` to the .js in preference to the .ts, which
+    // breaks the frontend dev server with a missing-export error.
+    "noEmit": true,
     "strict": true,
     "noImplicitAny": true,
     "strictNullChecks": true,

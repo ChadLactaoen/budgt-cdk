@@ -9,9 +9,10 @@
  * Sizes: 16 inline with body, 20 default, 24 headers, 32 empty states.
  */
 import {
-  ArrowLeft, Banknote, Calendar, Check, ChevronLeft, ChevronRight, Clock, Info,
-  Music, OctagonAlert, PiggyBank, ReceiptText, Repeat, Search, Shapes,
-  ShoppingBasket, ShoppingBag, Store, TriangleAlert, X,
+  ArrowLeft, Banknote, Calendar, Check, ChevronDown, ChevronLeft, ChevronRight, Clock,
+  Eye, EyeOff, Info, Music, OctagonAlert, PiggyBank, ReceiptText, Repeat, Search,
+  Shapes, ShoppingBasket, ShoppingBag, Store, Target, TrendingDown, TriangleAlert,
+  Wallet, X,
 } from 'lucide-vue-next';
 import type { Component } from 'vue';
 import { computed } from 'vue';
@@ -21,9 +22,12 @@ const GLYPHS: Record<string, Component> = {
   banknote: Banknote,
   calendar: Calendar,
   check: Check,
+  'chevron-down': ChevronDown,
   'chevron-left': ChevronLeft,
   'chevron-right': ChevronRight,
   clock: Clock,
+  eye: Eye,
+  'eye-off': EyeOff,
   info: Info,
   music: Music,
   'octagon-alert': OctagonAlert,
@@ -35,7 +39,10 @@ const GLYPHS: Record<string, Component> = {
   'shopping-basket': ShoppingBasket,
   'shopping-bag': ShoppingBag,
   store: Store,
+  target: Target,
+  'trending-down': TrendingDown,
   'triangle-alert': TriangleAlert,
+  wallet: Wallet,
   x: X,
 };
 

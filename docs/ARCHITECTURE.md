@@ -812,13 +812,19 @@ Vue 3 + TypeScript, built with Vite and deployed to S3 as static assets.
 | --- | --- | --- |
 | `/login` | Login | — (guest only) |
 | `/` | redirect | Resolves the current `YYYY-MM` and forwards to `/month/:yearMonth` |
-| `/month/:yearMonth` | Month dashboard | `GET /api/months/{yearMonth}` |
-| `/year/:year` | Year dashboard | `GET /api/years/{year}` |
+| `/month/:yearMonth` | Period view, month scope | `GET /api/months/{yearMonth}` |
+| `/year/:year` | Period view, year scope | `GET /api/years/{year}` |
 | `/period` | Period + Allocations form | none when creating; `GET /api/months/{m}` when `?m=` is present |
 | `/transaction` | Transaction form | `GET /api/templates`; plus `GET /api/transactions/{id}` when `?id=` is present |
 
 A global router guard redirects unauthenticated navigation to `/login`, and authenticated
 navigation away from it.
+
+One component serves both period routes and reads `route.name` to know which scope it is
+rendering. A year has no Allocations to compare spend against (`GET /api/years/{year}` returns
+periods and transactions only), so in year scope the breakdown drops its budget bars and
+"left" figures and reports the rolled-up spend per category instead. That single difference is
+the only thing the view branches on.
 
 ### "Current month" is resolved on the client
 
@@ -835,6 +841,26 @@ period" call to action linking to `/period?m=<yearMonth>`.
 Names, colors, icons, parents, and display order are read from `shared/categories.ts`, imported
 directly into the frontend bundle. The API returns only category IDs, so no request ever fetches
 category metadata and there is nothing to cache or invalidate for it.
+
+### Privacy is a display mask
+
+The period header carries a privacy toggle that replaces every currency string on screen with a
+fixed `$XX.XX`. It is off by default and scoped to the session, stored in `sessionStorage`
+alongside the cache: a setting that outlived the tab would silently mask a fresh session the user
+never armed.
+
+Three things about it are deliberate:
+
+- **Percentages and bar fills stay visible.** They carry no absolute figure, and hiding them would
+  leave the page unreadable rather than private. The mask defends against someone reading over a
+  shoulder; it is not a defence against someone holding the device.
+- **The mask lives in the formatter, not at the call site.** Every amount the app renders goes
+  through `HMoney` or the two functions behind it in `components/heeth/money.ts`, so a newly added
+  figure cannot ship unmasked by omission. The mask string is a fixed width, so turning it on never
+  reflows a column.
+- **Nothing about it reaches the API.** The response is byte-identical either way, and the cache
+  stores amounts, never their rendering. This is presentation, not access control, and it has no
+  business in the token, the query, or the table.
 
 ## Client-Side Caching
 
