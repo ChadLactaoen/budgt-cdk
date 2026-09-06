@@ -49,6 +49,10 @@ export const CATEGORIES = {
   BILLS_SOLAR: { nm: 'Solar', pt: 'Bills', hex: 'var(--cat-bills)', icon: 'receipt-text', active: true, ord: 13 },
   BILLS_TRASH: { nm: 'Trash', pt: 'Bills', hex: 'var(--cat-bills)', icon: 'receipt-text', active: true, ord: 14 },
   BILLS_WATER: { nm: 'Water', pt: 'Bills', hex: 'var(--cat-bills)', icon: 'receipt-text', active: true, ord: 15 },
+  // Retired: pre-mortgage housing costs, present only in migrated history.
+  BILLS_RENT: { nm: 'Rent', pt: 'Bills', hex: 'var(--cat-bills)', icon: 'receipt-text', active: false, ord: 16 },
+  BILLS_RENTERS_INSURANCE: { nm: 'Renters Insurance', pt: 'Bills', hex: 'var(--cat-bills)', icon: 'receipt-text', active: false, ord: 17 },
+  BILLS_WATER_SOFTENER: { nm: 'Water Softener', pt: 'Bills', hex: 'var(--cat-bills)', icon: 'receipt-text', active: false, ord: 18 },
 
   // Entertainment
   ENT_ART_HOBBIES: { nm: 'Art & Hobbies', pt: 'Entertainment', hex: 'var(--cat-entertainment)', icon: 'music', active: true, ord: 1 },
@@ -80,6 +84,8 @@ export const CATEGORIES = {
   SAV_INVESTMENTS: { nm: 'Investments', pt: 'Savings', hex: 'var(--cat-savings)', icon: 'piggy-bank', active: true, ord: 4 },
   SAV_RAINY_DAY: { nm: 'Rainy Day', pt: 'Savings', hex: 'var(--cat-savings)', icon: 'piggy-bank', active: true, ord: 5 },
   SAV_SAVINGS: { nm: 'Savings', pt: 'Savings', hex: 'var(--cat-savings)', icon: 'piggy-bank', active: true, ord: 6 },
+  // Retired 2019: the fund it deposits into is still registered so its withdrawals resolve.
+  SAV_GAMBLING_FUND: { nm: 'Gambling Fund', pt: 'Savings', hex: 'var(--cat-savings)', icon: 'piggy-bank', active: false, ord: 7 },
 
   // Subscriptions
   SUBS_AWS: { nm: 'AWS', pt: 'Subscriptions', hex: 'var(--cat-subscriptions)', icon: 'repeat', active: true, ord: 1 },
@@ -94,13 +100,14 @@ export const CATEGORIES = {
   SUBS_MISC_SUBSCRIPTIONS: { nm: 'Misc Subscriptions', pt: 'Subscriptions', hex: 'var(--cat-subscriptions)', icon: 'repeat', active: true, ord: 10 },
   SUBS_NBA: { nm: 'NBA', pt: 'Subscriptions', hex: 'var(--cat-subscriptions)', icon: 'repeat', active: true, ord: 11 },
   SUBS_NETFLIX: { nm: 'Netflix', pt: 'Subscriptions', hex: 'var(--cat-subscriptions)', icon: 'repeat', active: true, ord: 12 },
-  SUBS_NUMBERFIRE: { nm: 'Numberfire', pt: 'Subscriptions', hex: 'var(--cat-subscriptions)', icon: 'repeat', active: true, ord: 13 },
+  SUBS_NUMBERFIRE: { nm: 'Numberfire', pt: 'Subscriptions', hex: 'var(--cat-subscriptions)', icon: 'repeat', active: false, ord: 13 },
   SUBS_PARAMOUNT_PLUS: { nm: 'Paramount+', pt: 'Subscriptions', hex: 'var(--cat-subscriptions)', icon: 'repeat', active: true, ord: 14 },
   SUBS_PEACOCK: { nm: 'Peacock', pt: 'Subscriptions', hex: 'var(--cat-subscriptions)', icon: 'repeat', active: true, ord: 15 },
   SUBS_PEST_CONTROL: { nm: 'Pest Control', pt: 'Subscriptions', hex: 'var(--cat-subscriptions)', icon: 'repeat', active: true, ord: 16 },
   SUBS_TWITCH: { nm: 'Twitch', pt: 'Subscriptions', hex: 'var(--cat-subscriptions)', icon: 'repeat', active: true, ord: 17 },
   SUBS_VIKI: { nm: 'Viki', pt: 'Subscriptions', hex: 'var(--cat-subscriptions)', icon: 'repeat', active: true, ord: 18 },
   SUBS_YOUTUBE_PREMIUM: { nm: 'YouTube Premium', pt: 'Subscriptions', hex: 'var(--cat-subscriptions)', icon: 'repeat', active: true, ord: 19 },
+  SUBS_TECH: { nm: 'Tech', pt: 'Subscriptions', hex: 'var(--cat-subscriptions)', icon: 'repeat', active: true, ord: 20 },
 } satisfies Record<string, Category>;
 
 export type CategoryId = keyof typeof CATEGORIES;

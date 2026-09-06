@@ -19,6 +19,9 @@ export interface Fund {
 
 export const FUNDS = {
   'FUND#RAINY_DAY': { nm: 'Rainy Day', cat: 'SAV_RAINY_DAY' },
+  // Retired in 2019, but its 2018-19 withdrawals still need a `src` to resolve against.
+  // There is no `active` flag here: a fund with history is a fund that must stay addressable.
+  'FUND#GAMBLING_FUND': { nm: 'Gambling Fund', cat: 'SAV_GAMBLING_FUND' },
 } satisfies Record<string, Fund>;
 
 export type FundId = keyof typeof FUNDS;
