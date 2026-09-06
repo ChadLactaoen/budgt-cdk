@@ -93,7 +93,7 @@ export function buildPeriodTransactItems(input: PeriodInput, existingSks: string
     ),
   ];
 
-  // Unreachable with the current 57 categories (worst case is 58 items), but a
+  // Unreachable with the current 62 categories (worst case is 63 items), but a
   // ValidationException here would surface as an opaque 500. If the category set ever
   // approaches ~95, this endpoint needs chunking — which would break the
   // single-transaction invariant above, so it should be caught at review time.
