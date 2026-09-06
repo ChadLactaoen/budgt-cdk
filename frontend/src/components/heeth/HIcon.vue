@@ -9,10 +9,10 @@
  * Sizes: 16 inline with body, 20 default, 24 headers, 32 empty states.
  */
 import {
-  ArrowLeft, Banknote, Calendar, Check, ChevronDown, ChevronLeft, ChevronRight, Clock,
-  Eye, EyeOff, Info, Music, OctagonAlert, PiggyBank, ReceiptText, Repeat, Search,
-  Shapes, ShoppingBasket, ShoppingBag, Store, Target, TrendingDown, TriangleAlert,
-  Wallet, X,
+  ArrowLeft, Banknote, Calendar, Check, ChevronDown, ChevronLeft, ChevronRight,
+  ChevronsDown, Clock, Equal, Eye, EyeOff, Info, Lock, Menu, Music, OctagonAlert, PencilLine,
+  PiggyBank, ReceiptText, Repeat, Search, Shapes, ShoppingBasket, ShoppingBag, Store,
+  Target, Trash2, TrendingDown, TriangleAlert, Wallet, X,
 } from 'lucide-vue-next';
 import type { Component } from 'vue';
 import { computed } from 'vue';
@@ -25,12 +25,17 @@ const GLYPHS: Record<string, Component> = {
   'chevron-down': ChevronDown,
   'chevron-left': ChevronLeft,
   'chevron-right': ChevronRight,
+  'chevrons-down': ChevronsDown,
   clock: Clock,
+  equal: Equal,
   eye: Eye,
   'eye-off': EyeOff,
   info: Info,
+  lock: Lock,
+  menu: Menu,
   music: Music,
   'octagon-alert': OctagonAlert,
+  'pencil-line': PencilLine,
   'piggy-bank': PiggyBank,
   'receipt-text': ReceiptText,
   repeat: Repeat,
@@ -40,6 +45,7 @@ const GLYPHS: Record<string, Component> = {
   'shopping-bag': ShoppingBag,
   store: Store,
   target: Target,
+  'trash-2': Trash2,
   'trending-down': TrendingDown,
   'triangle-alert': TriangleAlert,
   wallet: Wallet,

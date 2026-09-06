@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" shape-rendering="crispEdges">
+  <!--
+    The Heeth press shadow as a mark: a lime surface with the hard, blur-free white
+    offset thrown down-right, exactly as the shadow-2 token draws it everywhere in
+    the app. (XML forbids a double hyphen in a comment, so the tokens are named here
+    without their leading dashes.)
+
+    Every edge is an axis-aligned rectangle on a 32-unit grid, so the mark lands on
+    whole pixels at 16, 24, 32 and 48. Colours are the tokens, resolved:
+    surface-sunken #0C1B58, line-hard #FFFFFF, lime-500 #2EE6D6.
+
+    The 4/32 margin clears the iOS corner mask; keep it if this is ever re-cut.
+  -->
+  <rect width="32" height="32" fill="#0C1B58"/>
+  <rect x="10" y="10" width="18" height="18" fill="#FFFFFF"/>
+  <rect x="4" y="4" width="18" height="18" fill="#2EE6D6"/>
+</svg>

@@ -2,12 +2,21 @@ import * as cdk from 'aws-cdk-lib';
 import { Match, Template } from 'aws-cdk-lib/assertions';
 import * as BudgtCdk from '../lib/budgt-cdk-stack';
 
+const DOMAIN_NAME = 'bdgt.example.com';
+
 describe('BudgtCdkStack', () => {
   let template: Template;
 
   beforeAll(() => {
     const app = new cdk.App();
-    const stack = new BudgtCdk.BudgtCdkStack(app, 'MyTestStack');
+    // A concrete env is required: HostedZone.fromLookup is a context lookup, and with
+    // no cached context it resolves to a dummy zone rather than failing the synth.
+    const stack = new BudgtCdk.BudgtCdkStack(app, 'MyTestStack', {
+      env: { account: '123456789012', region: 'us-west-2' },
+      domainName: DOMAIN_NAME,
+      hostedZoneName: 'example.com',
+      certificateArn: 'arn:aws:acm:us-east-1:123456789012:certificate/abcd-1234',
+    });
     template = Template.fromStack(stack);
   });
 
@@ -153,6 +162,30 @@ describe('BudgtCdkStack', () => {
       template.resourceCountIs('AWS::CloudFront::Distribution', 1);
     });
 
+    test('CloudFront serves the custom domain with the us-east-1 certificate', () => {
+      template.hasResourceProperties('AWS::CloudFront::Distribution', {
+        DistributionConfig: Match.objectLike({
+          Aliases: [DOMAIN_NAME],
+          ViewerCertificate: Match.objectLike({
+            AcmCertificateArn: 'arn:aws:acm:us-east-1:123456789012:certificate/abcd-1234',
+            SslSupportMethod: 'sni-only',
+          }),
+        }),
+      });
+    });
+
+    // Both families: the distribution is dual-stack, so an IPv6-only client that got
+    // no AAAA would never reach it.
+    test('Route 53 aliases the domain to the distribution over IPv4 and IPv6', () => {
+      for (const type of ['A', 'AAAA']) {
+        template.hasResourceProperties('AWS::Route53::RecordSet', {
+          Type: type,
+          Name: `${DOMAIN_NAME}.`,
+          AliasTarget: Match.objectLike({ DNSName: Match.anyValue() }),
+        });
+      }
+    });
+
     // Custom error responses are configured per distribution, not per behavior. Once
     // API Gateway shares the distribution they would rewrite API errors into
     // index.html with a 200, breaking both the auth contract and the "Period not
@@ -198,6 +231,7 @@ describe('BudgtCdkStack', () => {
       template.hasOutput('ApiEndpoint', {});
       template.hasOutput('TableName', {});
       template.hasOutput('CloudFrontUrl', {});
+      template.hasOutput('AppUrl', {});
     });
   });
 });

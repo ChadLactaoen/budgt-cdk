@@ -10,7 +10,7 @@ Backend / infra (repo root):
 npm run build                    # tsc — type-checks bin/, lib/, lambda/, shared/, scripts/, test/
 npm test                         # Jest (ts-jest); roots is test/ only
 npm test -- -t "test name"       # Single test by name
-npx cdk synth | diff | deploy    # CDK toolkit
+npx cdk synth|diff|deploy --all  # CDK toolkit — --all, because the app has two stacks
 ```
 
 Frontend (`frontend/`):
@@ -28,15 +28,22 @@ exist before synth:
 
 ```bash
 cd frontend && npm install && npm run build && cd ..
-npx cdk deploy
+npx cdk deploy --all
 ```
+
+`--all` is not optional: the app synthesizes `BudgtCertStack` (us-east-1, ACM only) alongside
+`BudgtCdkStack` (us-west-2, everything else). Both regions must be bootstrapped.
+
+`cdk.context.json` is gitignored — it would publish the account and hosted-zone ids that
+`bin/budgt-cdk.ts` keeps out of source. The first synth on a fresh clone therefore does a live
+Route 53 lookup and needs credentials for the account; `npx cdk context --clear` drops a stale one.
 
 Local frontend development needs `frontend/.env.local` (untracked):
 
 ```
 VITE_USER_POOL_ID=...
 VITE_USER_POOL_CLIENT_ID=...
-VITE_API_PROXY=https://<cloudfront-domain>   # optional; Vite proxies /api to the deployed stack
+VITE_API_PROXY=https://bdgt.chadlactaoen.com # optional; Vite proxies /api to the deployed stack
 ```
 
 The dev server has no API of its own. Without `VITE_API_PROXY` every `/api` call fails.
@@ -58,15 +65,22 @@ Browser → CloudFront ─┬─ /*     → S3 (Vue SPA, cached)
                       └─ /api/* → API Gateway (Cognito authorizer) → Lambda → DynamoDB "Budgt"
 ```
 
-Single-user, single-region, single stack (`lib/budgt-cdk-stack.ts`), single Lambda, single DynamoDB
-table. CloudFront is the only public origin, so the app is same-origin with the API and there is no
-CORS anywhere.
+Single-user, single Lambda, single DynamoDB table. Everything lives in `us-west-2` in
+`lib/budgt-cdk-stack.ts` — except the ACM certificate, which CloudFront will only read from
+`us-east-1` and which therefore gets a stack of its own (`lib/budgt-cert-stack.ts`); its ARN reaches
+the main stack as a cross-region reference. CloudFront is the only public origin, so the app is
+same-origin with the API and there is no CORS anywhere.
+
+The app answers at **`bdgt.chadlactaoen.com`**, aliased (A + AAAA) to the distribution from the
+existing `chadlactaoen.com` hosted zone. Auth is unaffected by the domain: Amplify signs in over SRP
+against the regional Cognito endpoint, so there are no callback URLs and no hosted UI to keep in
+sync — adding either later is what would make the domain Cognito's business.
 
 ### Three code trees, one type system
 
 | Tree | Runs where | Notes |
 | --- | --- | --- |
-| `lib/`, `bin/` | CDK synth | The whole stack is one file |
+| `lib/`, `bin/` | CDK synth | `budgt-cdk-stack.ts` is everything; `budgt-cert-stack.ts` is the us-east-1 certificate |
 | `lambda/api/` | Lambda (Node 20, esbuild via `NodejsFunction`) | One function, internal router |
 | `frontend/src/` | Browser (Vue 3 + Vite) | Separate `package.json` and tsconfig |
 | `shared/` | Both Lambda and browser | Imported by relative path from `lambda/`, and as `@shared/*` from the frontend (alias in `vite.config.ts`) |

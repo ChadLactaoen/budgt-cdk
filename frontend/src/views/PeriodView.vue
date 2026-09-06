@@ -334,6 +334,7 @@ interface Row extends Transaction {
   icon: string;
   color: string;
   catText: string;
+  catSort: string;
   dateText: string;
   metaText: string;
 }
@@ -349,7 +350,12 @@ const rows = computed<Row[]>(() => {
       ...t,
       icon: meta?.icon ?? 'shapes',
       color: meta?.hex ?? 'var(--cat-miscellaneous)',
-      catText: meta ? `${meta.pt} › ${meta.nm}` : t.cat,
+      // Subcategory only: the swatch beside it already carries the parent, and the
+      // parent's name is the longest half of a string this column has no room for.
+      catText: meta?.nm ?? t.cat,
+      // Sorting still keys on the parent first, so the category sort groups envelopes
+      // together the way the swatches suggest it does.
+      catSort: meta ? `${meta.pt} ${meta.nm}` : t.cat,
       dateText,
       metaText:
         `${dateText} · ${meta?.nm ?? t.cat}` + (t.src ? ` · from ${FUNDS[t.src].nm}` : ''),
@@ -360,7 +366,7 @@ const rows = computed<Row[]>(() => {
     date: (a, b) => a.td.localeCompare(b.td) || a.id.localeCompare(b.id),
     payee: (a, b) => a.nm.localeCompare(b.nm),
     amount: (a, b) => a.amt - b.amt,
-    category: (a, b) => a.catText.localeCompare(b.catText),
+    category: (a, b) => a.catSort.localeCompare(b.catSort),
   };
 
   const dir = sortDir.value === 'asc' ? 1 : -1;

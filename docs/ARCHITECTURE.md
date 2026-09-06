@@ -6,7 +6,8 @@
 ## System Architecture
 
 Serverless, single-user, single-region. CloudFront is the only public entry point: it serves the Vue
-SPA from S3 and proxies `/api/*` to API Gateway, so the browser only ever talks to one origin.
+SPA from S3 and proxies `/api/*` to API Gateway, so the browser only ever talks to one origin. That
+origin is `https://bdgt.chadlactaoen.com`.
 
 ```
                         ┌───────────┐
@@ -43,6 +44,42 @@ SPA from S3 and proxies `/api/*` to API Gateway, so the browser only ever talks 
 | Lambda | One Node.js 20.x function with an internal router, bundled by `NodejsFunction` |
 | DynamoDB | Single `Budgt` table + GSI1 |
 | Cognito | One User Pool holding exactly one user |
+| Route 53 | `bdgt.chadlactaoen.com`, aliased to the distribution |
+| ACM | Viewer certificate for that name, in `us-east-1` |
+
+### Custom domain and TLS
+
+The app is reached at `bdgt.chadlactaoen.com`, a subdomain of an existing `chadlactaoen.com` hosted
+zone. Three pieces:
+
+**The certificate lives in its own stack.** CloudFront reads viewer certificates from `us-east-1`
+and nowhere else, regardless of where the distribution's origins are. Since the rest of the stack
+belongs in `us-west-2` beside the table, the certificate gets `BudgtCertStack`, pinned to
+`us-east-1` and holding nothing else. Its ARN reaches the main stack as a **cross-region
+reference** (`crossRegionReferences: true` on both stacks): CDK writes the value to an SSM parameter
+in `us-east-1` and reads it back with a custom resource in `us-west-2`. This is the only reason the
+app is not a single stack, and it means `cdk deploy` must be `cdk deploy --all`.
+
+The certificate is DNS-validated (`CertificateValidation.fromDns(zone)`), so ACM writes its own
+validation CNAME into the zone and renews without anyone touching it again. Email validation would
+need a mailbox on the domain and a manual renewal every 13 months.
+
+**Both stacks need a concrete environment.** `HostedZone.fromLookup` is a context lookup, and a
+lookup has to know which account to query — an environment-agnostic stack cannot resolve the zone.
+`bin/budgt-cdk.ts` therefore sets `env` from `CDK_DEFAULT_ACCOUNT` / `CDK_DEFAULT_REGION`, and the
+resolved zone ID is cached in `cdk.context.json`, which is committed.
+
+**Alias records, not CNAMEs.** `A` and `AAAA` alias records point at the distribution. Aliases are
+free to query and follow CloudFront's addresses as they change; a CNAME would do neither and could
+not sit at a zone apex if the domain ever moved there. Both families are needed because the
+distribution is dual-stack by default — an IPv6-only client that received no `AAAA` would never
+reach it.
+
+**Cognito is unaffected.** The frontend authenticates by calling the regional Cognito endpoint
+directly over SRP (see [Authentication](#authentication)); there is no hosted UI and no OAuth
+redirect, so there are no callback or logout URLs that name an origin. Moving the app to a new
+domain changes nothing in the User Pool or its app client. Adopting the hosted UI later is what
+would make the domain Cognito's business.
 
 ### CloudFront routing
 
@@ -536,6 +573,9 @@ query where PK = "TMP#"
 A single Cognito User Pool containing exactly one user. The pool and its app client are created by
 CDK; the user is added manually after deploy (`aws cognito-idp admin-create-user`, or the console),
 since `selfSignUpEnabled` is `false`.
+
+The pool has no hosted-UI domain, no OAuth flows and no callback URLs, which is why the app's own
+domain is not configured anywhere in Cognito.
 
 **App client.** SRP only — `userSrp: true`, `userPassword: false`. `USER_PASSWORD_AUTH` sends the
 raw password to Cognito and buys nothing here, since the frontend uses Amplify, which speaks SRP

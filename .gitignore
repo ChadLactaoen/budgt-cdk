@@ -7,6 +7,10 @@ node_modules
 .cdk.staging
 cdk.out
 
+# Context cache: regenerates on synth, and would publish the AWS account
+# and hosted-zone ids that bin/budgt-cdk.ts keeps out of source.
+cdk.context.json
+
 # IDE
 .idea/
 .claude/

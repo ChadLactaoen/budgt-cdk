@@ -8,11 +8,27 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
+import * as acm from 'aws-cdk-lib/aws-certificatemanager';
+import * as route53 from 'aws-cdk-lib/aws-route53';
+import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import { Construct } from 'constructs';
 import * as path from 'path';
 
+export interface BudgtCdkStackProps extends cdk.StackProps {
+  /** The name the app is served under, e.g. `bdgt.chadlactaoen.com`. */
+  domainName: string;
+  /** The Route 53 hosted zone that owns it, e.g. `chadlactaoen.com`. */
+  hostedZoneName: string;
+  /**
+   * ARN of the viewer certificate, which `BudgtCertStack` creates in `us-east-1`.
+   * Passed as a string, not an `ICertificate`: the construct belongs to a stack in
+   * another region, but its ARN crosses the boundary as a cross-region reference.
+   */
+  certificateArn: string;
+}
+
 export class BudgtCdkStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props: BudgtCdkStackProps) {
     super(scope, id, props);
 
     // ===================
@@ -23,7 +39,12 @@ export class BudgtCdkStack extends cdk.Stack {
       partitionKey: { name: 'PK', type: dynamodb.AttributeType.STRING },
       sortKey: { name: 'SK', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      // RETAIN: the table is the only copy of the budget history, and a stack delete
+      // (or a property change CloudFormation implements as a replacement) would take
+      // it with it. Surviving the stack means a later deploy collides with the
+      // still-existing `Budgt` name — that is the intended failure, and the fix is to
+      // adopt or rename the orphan by hand.
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
 
     table.addGlobalSecondaryIndex({
@@ -52,7 +73,9 @@ export class BudgtCdkStack extends cdk.Stack {
         requireSymbols: false,
       },
       accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
-      removalPolicy: cdk.RemovalPolicy.DESTROY, // For dev - change for prod
+      // RETAIN: users are created by hand, never by the stack, so a destroyed pool
+      // cannot be reconstructed from source.
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
 
     const userPoolClient = new cognito.UserPoolClient(this, 'BudgtUserPoolClient', {
@@ -138,10 +161,19 @@ export class BudgtCdkStack extends cdk.Stack {
     // S3 + CloudFront (Vue Hosting)
     // ===================
     const websiteBucket = new s3.Bucket(this, 'BudgtWebsiteBucket', {
-      bucketName: `budgt-frontend-${this.account}-${this.region}`,
+      // Aws.ACCOUNT_ID / Aws.REGION, not this.account / this.region: with a concrete
+      // env those resolve at synth time to literals, and a BucketName that changes
+      // shape — even to the same string — reads to `cdk diff` as a replacement of a
+      // bucket that cannot be recreated under a name still in use. The pseudo-
+      // parameters keep the property byte-identical to what is already deployed.
+      bucketName: `budgt-frontend-${cdk.Aws.ACCOUNT_ID}-${cdk.Aws.REGION}`,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
-      removalPolicy: cdk.RemovalPolicy.DESTROY, // For dev - change for prod
-      autoDeleteObjects: true, // For dev - change for prod
+      // RETAIN, and therefore no `autoDeleteObjects`: CDK rejects that property on any
+      // bucket whose removal policy is not DESTROY, since it installs a custom resource
+      // whose whole job is to empty the bucket so the delete can succeed. The contents
+      // are rebuildable from `frontend/`, but a retained bucket keeps the site serving
+      // through a botched deploy and keeps the bucket name reserved.
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
 
     // CloudFront Origin Access Control
@@ -174,8 +206,23 @@ function handler(event) {
 `),
     });
 
+    // Route 53 + ACM
+    //
+    // The certificate is looked up by ARN rather than created here: CloudFront reads
+    // viewer certificates from us-east-1 only, so it is made by BudgtCertStack.
+    const zone = route53.HostedZone.fromLookup(this, 'BudgtHostedZone', {
+      domainName: props.hostedZoneName,
+    });
+    const certificate = acm.Certificate.fromCertificateArn(
+      this,
+      'BudgtCertificate',
+      props.certificateArn,
+    );
+
     // CloudFront Distribution
     const distribution = new cloudfront.Distribution(this, 'BudgtDistribution', {
+      domainNames: [props.domainName],
+      certificate,
       defaultRootObject: 'index.html',
       defaultBehavior: {
         origin: origins.S3BucketOrigin.withOriginAccessControl(websiteBucket, {
@@ -202,6 +249,22 @@ function handler(event) {
           allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
         },
       },
+    });
+
+    // Alias records, not CNAMEs: an alias resolves at the zone apex or a subdomain
+    // alike, costs nothing to query, and tracks the distribution's addresses as they
+    // change. Both families, because the distribution is dual-stack by default —
+    // without the AAAA an IPv6-only client would never reach it.
+    const aliasTarget = route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(distribution));
+    new route53.ARecord(this, 'BudgtAliasRecord', {
+      zone,
+      recordName: props.domainName,
+      target: aliasTarget,
+    });
+    new route53.AaaaRecord(this, 'BudgtAliasRecordV6', {
+      zone,
+      recordName: props.domainName,
+      target: aliasTarget,
     });
 
     new s3deploy.BucketDeployment(this, 'BudgtWebsiteDeployment', {
@@ -244,9 +307,14 @@ function handler(event) {
       description: 'DynamoDB table name',
     });
 
+    new cdk.CfnOutput(this, 'AppUrl', {
+      value: `https://${props.domainName}`,
+      description: 'Public app URL',
+    });
+
     new cdk.CfnOutput(this, 'CloudFrontUrl', {
       value: `https://${distribution.distributionDomainName}`,
-      description: 'CloudFront distribution URL',
+      description: 'CloudFront distribution URL (still serves the app; the domain is an alias)',
     });
   }
 }
