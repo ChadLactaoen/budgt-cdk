@@ -1,89 +1,65 @@
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, ScanCommand, BatchWriteCommand } from '@aws-sdk/lib-dynamodb';
-
-const client = new DynamoDBClient({ region: 'us-west-2' });
-const docClient = DynamoDBDocumentClient.from(client);
+/**
+ * Migrates the legacy `Template` table's `type: "TRANSACTION"` rows into `Budgt`.
+ *
+ *   npx ts-node scripts/migrate-templates.ts            # dry run, writes nothing
+ *   npx ts-node scripts/migrate-templates.ts --apply
+ *
+ * Independent of the period and transaction migrations: this script owns the whole
+ * `TMP#` partition and touches nothing else, so it can run in any order.
+ */
+import { isCategoryId, CATEGORIES } from '../shared/categories';
+import { TEMPLATE_PK } from '../lambda/api/keys';
+import { buildTemplateItems, type LegacyTemplate } from './migration/templates';
+import { APPLY, batchWrite, clearPartitions, scanAll, TARGET_TABLE, REGION } from './migration/ddb';
 
 const SOURCE_TABLE = 'Template';
-const TARGET_TABLE = 'Budgt';
 
-interface SourceTemplate {
-  templateName: string;
-  type: string;
-  category: string;
-  name: string;
-  price: number;
-}
+async function main() {
+  const rows = await scanAll<LegacyTemplate>(SOURCE_TABLE);
+  console.log(`scanned ${rows.length} rows from ${SOURCE_TABLE} (${REGION})`);
 
-interface TargetTemplate {
-  PK: string;
-  SK: string;
-  templateId: string;
-  name: string;
-  category: string;
-  defaultAmount: number;
-  entityType: string;
-}
+  const items = buildTemplateItems(rows);
+  const skipped = rows.length - items.length;
+  if (skipped) console.log(`  skipped ${skipped}: type is not TRANSACTION`);
 
-function toSlug(str: string): string {
-  return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-}
-
-function toCents(price: number): number {
-  return Math.round(price * 100);
-}
-
-function transform(source: SourceTemplate): TargetTemplate {
-  return {
-    PK: 'GLOBAL#',
-    SK: `TPL#${source.templateName}`,
-    templateId: toSlug(source.templateName),
-    name: source.name,
-    category: source.category,
-    defaultAmount: toCents(source.price),
-    entityType: 'Template',
-  };
-}
-
-async function migrate() {
-  // Scan all items from source table, filtering out BET type
-  const scanResult = await docClient.send(new ScanCommand({
-    TableName: SOURCE_TABLE,
-    FilterExpression: '#t = :type',
-    ExpressionAttributeNames: { '#t': 'type' },
-    ExpressionAttributeValues: { ':type': 'TRANSACTION' },
-  }));
-
-  const items = scanResult.Items as SourceTemplate[];
-  console.log(`Found ${items.length} templates to migrate (filtered out BET items)`);
-
-  // Transform items
-  const transformed = items.map(transform);
-
-  // Log sample transformation
-  console.log('\nSample transformation:');
-  console.log('Source:', JSON.stringify(items[0], null, 2));
-  console.log('Target:', JSON.stringify(transformed[0], null, 2));
-
-  // Batch write in chunks of 25 (DynamoDB limit)
-  const chunks: TargetTemplate[][] = [];
-  for (let i = 0; i < transformed.length; i += 25) {
-    chunks.push(transformed.slice(i, i + 25));
+  // Print the whole mapping: 19 rows is small enough to review by eye, and the category
+  // translation is the only part of this migration that can be wrong without erroring.
+  console.log(`\nwill write ${items.length} TEMPLATE items`);
+  for (const t of items) {
+    console.log(
+      `  ${t.SK.padEnd(20)} ${t.tn.padEnd(16)} ${t.nm.padEnd(26)} ${t.cat.padEnd(22)}` +
+        ` ${(t.amt / 100).toFixed(2).padStart(9)}${t.active ? '' : '  <-- inactive, category is retired'}`,
+    );
   }
 
-  for (const chunk of chunks) {
-    await docClient.send(new BatchWriteCommand({
-      RequestItems: {
-        [TARGET_TABLE]: chunk.map(item => ({
-          PutRequest: { Item: item },
-        })),
-      },
-    }));
-    console.log(`Migrated ${chunk.length} items`);
+  // The keys are derived from `templateName`, the source's own hash key, so a collision
+  // would mean the source itself is inconsistent.
+  const keys = new Set(items.map((t) => `${t.PK}|${t.SK}`));
+  if (keys.size !== items.length) throw new Error(`${items.length - keys.size} duplicate template key(s)`);
+
+  for (const t of items) {
+    if (!isCategoryId(t.cat)) throw new Error(`${t.SK}: ${t.cat} is not a category ID`);
+    if (!Number.isSafeInteger(t.amt)) throw new Error(`${t.SK}: amt ${t.amt} is not an integer`);
+    if (!t.tn || !t.nm) throw new Error(`${t.SK}: missing label or payee`);
+    if (t.active !== CATEGORIES[t.cat].active) throw new Error(`${t.SK}: active disagrees with its category`);
+  }
+  console.log('\nevery template resolves to a live category ID with an exact cent amount');
+
+  if (!APPLY) {
+    console.log('\ndry run — nothing written. Re-run with --apply.');
+    return;
   }
 
-  console.log('\nMigration complete!');
-  console.log(`Total migrated: ${transformed.length} templates`);
+  // This script owns the partition outright, so clearing it wholesale is what makes a
+  // re-run idempotent after the mapping or a source price has changed.
+  const removed = await clearPartitions([TEMPLATE_PK]);
+  console.log(`\ncleared ${removed} existing template(s)`);
+
+  await batchWrite(items.map((Item) => ({ PutRequest: { Item } })));
+  console.log(`wrote ${items.length} items to ${TARGET_TABLE}`);
 }
 
-migrate().catch(console.error);
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

@@ -159,6 +159,10 @@ Integers remove the class of bug instead of papering over it:
   incremental updates.
 - Range is a non-issue: `Number.MAX_SAFE_INTEGER` is roughly $90 trillion in cents.
 
+The transaction form's amount field additionally accepts a `+` expression — `68.95+19.98` — for a
+purchase a merchant split across two card charges. `shared/money.ts#parseAmountExpression` sums the
+terms client-side; the API only ever sees the collapsed integer, and the breakdown is not stored.
+
 Conversion happens only at the frontend's edges — parse on input, format on display — through
 helpers in `shared/money.ts`, alongside `shared/categories.ts`. Request and response bodies carry
 cents throughout; there is no conversion at the API boundary.
@@ -484,10 +488,11 @@ A Template is a reusable, pre-filled transaction for recurring spend.
 ```json
 {
   "PK": "TMP#",
-  "SK": "TX#Cinemark",
-  "nm": "Cinemark Subscription",
-  "amt": 1199,
-  "cat": "SUBS_CINEMARK",
+  "SK": "TX#Mortgage",
+  "tn": "Mortgage",
+  "nm": "Freedom Mortgage",
+  "amt": 329371,
+  "cat": "BILLS_MORTGAGE",
   "active": true,
   "type": "TEMPLATE"
 }
@@ -495,10 +500,15 @@ A Template is a reusable, pre-filled transaction for recurring spend.
 
 | Attribute | Description |
 | --- | --- |
+| `tn` | The template's own label, and the `TX#` half of its `SK`. Distinct from `nm`, because the thing you look for in the picker is rarely what the statement calls it — "Mortgage" is filed by "Freedom Mortgage", "HOA" by "Skye Canyon Community" |
 | `nm` | Default payee / description |
 | `amt` | Default amount |
 | `cat` | Category ID |
-| `active` | Whether the template appears in the picker. Retired templates are deactivated, not deleted, so past transactions created from them stay attributable |
+| `active` | Whether the template appears in the picker. Retired templates are deactivated, not deleted, so past transactions created from them stay attributable. A template whose category is itself retired is written inactive — offering it would let the picker file a transaction the category sheet no longer can |
+
+Templates are seeded by `scripts/migrate-templates.ts` and there is no write endpoint: the picker is
+a read of a fixed list, and a template that could drift from its category is a template that could
+produce an unresolvable transaction.
 
 ## Access Patterns
 

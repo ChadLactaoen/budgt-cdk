@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { CATEGORIES, type CategoryId } from '@shared/categories';
 import { FUNDS, type FundId } from '@shared/funds';
-import { centsToInput, parseDollarsToCents } from '@shared/money';
+import { centsToInput, formatCents, parseAmountExpression } from '@shared/money';
 import { api, ApiError, type Template, type YearResponse } from '../api/client';
-import { cached, invalidateMonths, yearKey } from '../stores/cache';
+import { cached, invalidateMonths, TEMPLATES_KEY, yearKey } from '../stores/cache';
 import HAmountField from '../components/heeth/HAmountField.vue';
 import HAppHeader from '../components/heeth/HAppHeader.vue';
 import HButton from '../components/heeth/HButton.vue';
@@ -13,8 +13,10 @@ import HCallout from '../components/heeth/HCallout.vue';
 import HCategoryAvatar from '../components/heeth/HCategoryAvatar.vue';
 import HCategorySheet from '../components/heeth/HCategorySheet.vue';
 import HIcon from '../components/heeth/HIcon.vue';
+import HIconButton from '../components/heeth/HIconButton.vue';
 import HInput from '../components/heeth/HInput.vue';
 import HMoney from '../components/heeth/HMoney.vue';
+import HSelect from '../components/heeth/HSelect.vue';
 import HSwitch from '../components/heeth/HSwitch.vue';
 
 const route = useRoute();
@@ -31,12 +33,16 @@ const memo = ref('');
 const advanced = ref(false);
 const pickerOpen = ref(false);
 const templates = ref<Template[]>([]);
+/** The chosen template's id, or '' for none. Doubles as the applied-template label. */
+const templateId = ref('');
 const year = ref<YearResponse | null>(null);
 const saveError = ref('');
 /** Set when the save failed because the target month has no Period. */
 const missingPeriod = ref('');
 const saving = ref(false);
 const submitted = ref(false);
+/** The payee just saved, while the form stays open for the next one. */
+const savedNote = ref('');
 /** Explains an auto-filled category, so the change never looks like a glitch. */
 const suggestNote = ref('');
 
@@ -45,12 +51,42 @@ const originalMonth = ref<string | null>(null);
 
 const chosen = computed(() => (cat.value ? CATEGORIES[cat.value] : null));
 
+/**
+ * A native <option> is plain text, so the payee only earns its place when it differs
+ * from the label — half the templates are named after their merchant, and "Netflix —
+ * Netflix" is noise. The amount is deliberately left out: an option cannot route
+ * through HMoney, so putting a figure here would show it under privacy mode.
+ */
+const templateOptions = computed(() => [
+  { value: '', label: 'Start from a template…' },
+  ...templates.value.map((t) => ({
+    value: t.id,
+    label: t.tn === t.nm ? t.tn : `${t.tn} — ${t.nm}`,
+  })),
+]);
+
+/** Parsed once and read by both the validator and the save path. */
+const amountCents = computed(() => parseAmountExpression(amount.value));
+
+/**
+ * A summed expression stays in the field as typed — it is the record of how the total
+ * was arrived at — so the total itself has to be shown somewhere. `formatCents` rather
+ * than the privacy-masked `formatAmount`: the operands are already on screen in the
+ * input being typed into, so masking the sum would hide nothing.
+ */
+const amountHint = computed(() =>
+  amount.value.includes('+') && amountCents.value !== null
+    ? `= ${formatCents(amountCents.value)}`
+    : 'Add amounts with + to combine a split charge.',
+);
+const showingTotal = computed(() => amountHint.value.startsWith('='));
+
 const eyebrow = computed(() =>
   new Date(`${td.value}T00:00:00`).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
 );
 
 const errors = computed(() => ({
-  amount: parseDollarsToCents(amount.value) === null ? 'Enter an amount.' : '',
+  amount: amountCents.value === null ? 'Enter an amount.' : '',
   nm: nm.value.trim() ? '' : 'Add a payee. This is the name on the statement.',
   cat: cat.value ? '' : 'Every transaction needs one category.',
 }));
@@ -59,8 +95,8 @@ const errorCount = computed(() => Object.values(errors.value).filter(Boolean).le
 const showErrors = computed(() => submitted.value && errorCount.value > 0);
 
 onMounted(async () => {
-  api
-    .getTemplates()
+  // Templates are read-only, so the cache never needs invalidating.
+  cached<{ templates: Template[] }>(TEMPLATES_KEY, () => api.getTemplates())
     .then((r) => (templates.value = r.templates.filter((t) => t.active)))
     .catch(() => undefined);
 
@@ -91,12 +127,19 @@ function loadYear(y: string) {
     .catch(() => undefined);
 }
 
-function applyTemplate(t: Template) {
+/**
+ * Fills the three fields a template knows about; date, source and memo stay the
+ * user's. Selecting the placeholder clears nothing — the fields are theirs to edit
+ * once filled, and silently emptying them would be the more surprising behaviour.
+ */
+watch(templateId, (id) => {
+  const t = templates.value.find((x) => x.id === id);
+  if (!t) return;
   nm.value = t.nm;
   cat.value = t.cat;
   amount.value = centsToInput(t.amt);
   suggestNote.value = '';
-}
+});
 
 function pick(next: CategoryId) {
   cat.value = next;
@@ -156,7 +199,7 @@ async function save() {
   submitted.value = true;
   saveError.value = '';
   missingPeriod.value = '';
-  const amt = parseDollarsToCents(amount.value);
+  const amt = amountCents.value;
   if (amt === null || !cat.value || !nm.value.trim()) return;
 
   saving.value = true;
@@ -174,7 +217,21 @@ async function save() {
     const months = [saved.td.slice(0, 7)];
     if (originalMonth.value && originalMonth.value !== months[0]) months.push(originalMonth.value);
     invalidateMonths(...months);
-    router.push({ name: 'month', params: { yearMonth: months[0] } });
+
+    // An edit is done when it is saved. Adding is not: transactions arrive in batches
+    // off a statement, so the form clears itself and waits for the next one. The
+    // checkmark in the footer is the way out.
+    if (id.value) {
+      router.push({ name: 'month', params: { yearMonth: months[0] } });
+      return;
+    }
+    savedNote.value = nm.value.trim();
+    resetForNext();
+    // The year payload was just invalidated, and the form reads it for fund balances
+    // and the payee -> category suggestion. Pull it forward rather than showing the
+    // balances the transaction has already moved.
+    loadYear(saved.td.slice(0, 4));
+    window.scrollTo({ top: 0 });
   } catch (e) {
     // A transaction filed into a month with no Period would be invisible in the month
     // view, so the API refuses it. Offer the fix rather than just the message.
@@ -185,6 +242,28 @@ async function save() {
   } finally {
     saving.value = false;
   }
+}
+
+/**
+ * Keeps the date — a batch off one statement usually shares it — and the advanced
+ * panel's open state. The funding source is not kept: silently filing the next
+ * transaction against a fund is the expensive mistake, and it is not visible from the
+ * amount field where the user is typing.
+ */
+function resetForNext() {
+  nm.value = '';
+  cat.value = '';
+  amount.value = '';
+  src.value = '';
+  memo.value = '';
+  templateId.value = '';
+  suggestNote.value = '';
+  submitted.value = false;
+}
+
+/** The checkmark: done adding, back to the period being filed into. */
+function done() {
+  router.push({ name: 'month', params: { yearMonth: td.value.slice(0, 7) } });
 }
 
 function createPeriod() {
@@ -227,14 +306,19 @@ function cancel() {
           >Create the period</HButton>
         </HCallout>
 
+        <HCallout v-else-if="savedNote" tone="ok" :title="`Saved ${savedNote}`">
+          Add the next one, or tap the checkmark to go back to the period.
+        </HCallout>
+
         <HAmountField
           v-model="amount"
           label="Amount"
           :error="showErrors ? errors.amount : ''"
-          hint="Type a minus sign for a refund."
+          :hint="amountHint"
         >
           <template #noteIcon>
             <HIcon v-if="showErrors && errors.amount" name="octagon-alert" :size="16" />
+            <HIcon v-else-if="showingTotal" name="equal" :size="16" />
           </template>
         </HAmountField>
 
@@ -250,18 +334,13 @@ function cancel() {
           <HInput v-model="td" label="Date" type="date" icon="calendar" hint="When the spend happened." />
         </div>
 
-        <div v-if="templates.length" class="tx__templates">
-          <span class="heeth-caps tx__label">Templates</span>
-          <div class="tx__chips">
-            <button
-              v-for="t in templates"
-              :key="t.id"
-              type="button"
-              class="tx__chip heeth-caps"
-              @click="applyTemplate(t)"
-            >{{ t.nm }}</button>
-          </div>
-        </div>
+        <HSelect
+          v-if="templates.length"
+          v-model="templateId"
+          label="Template"
+          :options="templateOptions"
+          hint="Fills the payee, category and amount. Everything stays editable."
+        />
 
         <div class="tx__field">
           <span class="heeth-caps tx__label" :class="{ 'is-error': showErrors && errors.cat }">
@@ -340,6 +419,13 @@ function cancel() {
         <HButton class="tx__save" :disabled="saving" @click="save">
           {{ saving ? 'Saving' : 'Save transaction' }}
         </HButton>
+        <HIconButton
+          v-if="!id"
+          name="check"
+          label="Done adding — back to the period"
+          variant="primary"
+          @click="done"
+        />
       </div>
     </div>
   </div>
@@ -411,20 +497,6 @@ function cancel() {
 
 /* The callout wraps its slot in a <p>, so the action needs to break the line itself. */
 .tx__callout-action { display: block; margin-top: var(--space-3); }
-
-.tx__templates { display: flex; flex-direction: column; gap: var(--space-3); }
-.tx__chips { display: flex; flex-wrap: wrap; gap: var(--space-3); }
-.tx__chip {
-  min-height: 36px;
-  padding: 0 var(--space-4);
-  background: var(--surface-card);
-  border: var(--bw) solid var(--line-hard);
-  border-radius: var(--radius-1);
-  box-shadow: var(--shadow-1);
-  color: var(--text-body);
-  cursor: pointer;
-}
-.tx__chip:hover { background: var(--surface-hover); }
 
 .tx__advanced {
   display: flex;

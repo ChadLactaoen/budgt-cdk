@@ -56,6 +56,8 @@ export interface YearResponse {
 
 export interface Template {
   id: string;
+  /** The template's own label. `nm` is the payee it fills into the form. */
+  tn: string;
   nm: string;
   amt: number;
   cat: CategoryId;

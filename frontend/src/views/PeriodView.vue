@@ -256,6 +256,16 @@ function step(by: number) {
   else router.push(`/month/${shiftMonth(yearMonth.value, by)}`);
 }
 
+/**
+ * The period form is a desired-state replacement, so opening it on a month that
+ * already has one is an edit: it locks the month and loads the existing allocations.
+ * Only reachable from a month that has a period — there is nothing to edit otherwise,
+ * and the empty state already offers "Create this period."
+ */
+function editPeriod() {
+  router.push({ path: '/period', query: { m: yearMonth.value } });
+}
+
 const scopeOptions = [
   { value: 'month', label: 'Month' },
   { value: 'year', label: 'Year' },
@@ -423,6 +433,13 @@ const ledgerNote = computed(() => {
         :label="isYear ? 'Next year' : 'Next month'"
         :variant="isDesktop ? 'secondary' : 'bare'"
         @click="step(1)"
+      />
+      <HIconButton
+        v-if="!isYear && month"
+        name="pencil-line"
+        label="Edit this period"
+        :variant="isDesktop ? 'secondary' : 'bare'"
+        @click="editPeriod"
       />
 
       <template v-if="isDesktop">
@@ -717,6 +734,12 @@ const ledgerNote = computed(() => {
   letter-spacing: var(--ls-display);
   text-transform: uppercase;
   color: var(--text-strong);
+  /* "September 2026" and four 44px controls just fit a 390px bar. Below that the
+     title gives way rather than pushing the buttons off the edge. */
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .period__subtitle {
   font-size: var(--fs-micro);

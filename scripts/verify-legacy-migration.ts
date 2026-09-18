@@ -14,12 +14,13 @@ import type {
   AllocationItem,
   FundItem,
   PeriodItem,
+  TemplateItem,
   TransactionItem,
 } from '../lambda/api/types';
 
 type Row = Record<string, unknown> & { PK: string; SK: string; type?: string };
 
-const EXPECTED = { PERIOD: 101, ALLOCATION: 3140, TRANSACTION: 8045, FUND: 11 };
+const EXPECTED = { PERIOD: 101, ALLOCATION: 3140, TRANSACTION: 8045, FUND: 11, TEMPLATE: 19 };
 /** The live month, entered through the app and untouched by the migration. */
 const PROTECTED_ITEM_COUNT = 29;
 
@@ -36,6 +37,7 @@ async function main() {
   const allocations = by<AllocationItem>('ALLOCATION');
   const transactions = by<TransactionItem>('TRANSACTION');
   const funds = by<FundItem>('FUND');
+  const templates = by<TemplateItem>('TEMPLATE');
 
   console.log(`${rows.length} items in ${TARGET_TABLE}`);
   for (const [type, want] of Object.entries(EXPECTED)) {
@@ -94,8 +96,17 @@ async function main() {
   }
   for (const k of stored.keys()) fail(`${k}: fund item no transaction accounts for`);
 
+  // Templates are pre-filled transactions, so they answer to the same closed registries.
+  for (const t of templates) {
+    if (!isCategoryId(t.cat)) fail(`template ${t.SK}: bad cat ${t.cat}`);
+    if (!Number.isSafeInteger(t.amt)) fail(`template ${t.SK}: amt ${t.amt} is not an integer`);
+    if (!t.tn) fail(`template ${t.SK}: no label`);
+    if (!t.nm) fail(`template ${t.SK}: no payee`);
+  }
+
   console.log(`\nbudgeted total ${(periods.reduce((s, p) => s + p.amt, 0) / 100).toFixed(2)}`);
   console.log(`withdrawals    ${transactions.filter((t) => t.src).length}`);
+  console.log(`templates      ${templates.filter((t) => t.active).length} active of ${templates.length}`);
 
   if (problems.length) {
     console.error(`\n${problems.length} problem(s):`);

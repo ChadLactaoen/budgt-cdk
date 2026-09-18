@@ -46,11 +46,10 @@ const model = defineModel<string>({ required: true });
 }
 
 .h-select__field {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
   height: var(--tap-min);
-  padding: 0 var(--space-4);
   background: var(--surface-sunken);
   border: var(--bw) solid var(--line-hard);
   border-radius: var(--radius-1);
@@ -62,9 +61,23 @@ const model = defineModel<string>({ required: true });
 }
 .h-select__field.is-error { border-color: var(--coral-500); }
 
+/**
+ * The select fills the whole well instead of sitting inside it as a flex item, so every
+ * click within the border lands on the control itself.
+ *
+ * As a flex item it was only as tall as its text line — half the 48px field, and never
+ * the chevron — so a click on the padding or the arrow went to the wrapping <label>
+ * instead. A label only FOCUSES a select: on desktop that lights the border and opens
+ * nothing, while on mobile focus alone is enough to raise the OS picker. Same markup,
+ * opposite outcome, which is exactly how this hid.
+ */
 .h-select__field select {
-  flex: 1;
-  min-width: 0;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* The padding moves here from the field: the select is now the full box. */
+  padding: 0 var(--space-8) 0 var(--space-4);
   appearance: none;
   border: 0;
   outline: none;
@@ -75,10 +88,18 @@ const model = defineModel<string>({ required: true });
   font-size: var(--fs-body-l);
   cursor: pointer;
 }
-/* The popup is drawn by the OS, so its background has to be set on the option itself. */
-.h-select__field option { background: var(--surface-card); }
+/* The popup is drawn by the OS, so its colours have to be set on the option itself.
+   The pair is set together: a background whose foreground is left to the UA is one
+   `color-scheme` change away from being illegible. */
+.h-select__field option { background: var(--surface-card); color: var(--text-body); }
 
-.h-select__chevron { color: var(--text-muted); }
+/* Decorative now that the select is underneath it: clicks must pass through. */
+.h-select__chevron {
+  position: absolute;
+  right: var(--space-4);
+  color: var(--text-muted);
+  pointer-events: none;
+}
 
 .h-select__note {
   display: flex;

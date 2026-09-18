@@ -17,6 +17,7 @@ export async function getTemplates() {
 
   const templates = ((result.Items ?? []) as TemplateItem[]).map((t) => ({
     id: t.SK,
+    tn: t.tn ?? t.nm,
     nm: t.nm,
     amt: t.amt,
     cat: t.cat,
