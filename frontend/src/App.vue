@@ -13,6 +13,8 @@ const route = useRoute();
 const isAuthenticated = ref(false);
 const userEmail = ref('');
 
+const home = computed(() => `/month/${currentYearMonth()}`);
+
 const links = computed(() => {
   const ym = currentYearMonth();
   const year = ym.slice(0, 4);
@@ -57,7 +59,7 @@ watch(route, () => {
 
 <template>
   <div class="app">
-    <HAppNav v-if="isAuthenticated && route.name !== 'login'" :links="links">
+    <HAppNav v-if="isAuthenticated && route.name !== 'login'" :home="home" :links="links">
       <template #end>
         <div class="app__account">
           <span class="app__email">{{ userEmail }}</span>

@@ -30,6 +30,7 @@ export const txKeys = (td: string, ts: number) => ({
 export const fundKey = (fund: FundId, year: string) => ({ PK: fund, SK: `YEAR#${year}` });
 
 export const TEMPLATE_PK = 'TMP#';
+export const templateSk = (templateName: string) => `TX#${templateName}`;
 
 /**
  * The public ID of a Transaction. Note this is NOT stable across an edit: `td` is

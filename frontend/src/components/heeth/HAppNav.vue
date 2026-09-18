@@ -15,7 +15,11 @@ import { onUnmounted, ref, watch } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 import HIcon from './HIcon.vue';
 
-defineProps<{ links: Array<{ label: string; to: string; active: boolean }> }>();
+defineProps<{
+  /** Where the wordmark goes. The nav stays dumb about what "home" means. */
+  home: string;
+  links: Array<{ label: string; to: string; active: boolean }>;
+}>();
 
 const route = useRoute();
 
@@ -53,7 +57,7 @@ onUnmounted(() => {
 
 <template>
   <nav class="h-nav" :class="{ 'is-open': open }">
-    <span class="h-nav__wordmark">Budgt</span>
+    <RouterLink :to="home" class="h-nav__wordmark" @click="open = false">Budgt</RouterLink>
 
     <template v-if="!isCompact">
       <div class="h-nav__links">
@@ -120,7 +124,9 @@ onUnmounted(() => {
   text-transform: uppercase;
   letter-spacing: var(--ls-label);
   color: var(--lime-500);
+  text-decoration: none;
 }
+.h-nav__wordmark:hover { color: var(--lime-400); }
 
 .h-nav__links { display: flex; gap: var(--space-6); }
 

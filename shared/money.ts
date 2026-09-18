@@ -34,3 +34,24 @@ export function parseDollarsToCents(input: string): number | null {
   const cents = Math.round(Number(cleaned) * 100);
   return Number.isSafeInteger(cents) ? cents : null;
 }
+
+/**
+ * "68.95+19.98" -> 8893. A strict superset of `parseDollarsToCents`: a lone term is
+ * the ordinary case, so every input that parsed before parses identically.
+ *
+ * Some merchants split one purchase across two card charges — a base subscription and
+ * its upgrades — and the total is what belongs in the ledger. Summing here keeps that a
+ * client-side convenience: the API only ever sees the collapsed integer.
+ *
+ * A malformed term poisons the whole expression rather than being dropped, because a
+ * half-typed "68.95+" must read as "not an amount yet", never as $68.95.
+ */
+export function parseAmountExpression(input: string): number | null {
+  let total = 0;
+  for (const term of input.split('+')) {
+    const cents = parseDollarsToCents(term);
+    if (cents === null) return null;
+    total += cents;
+  }
+  return Number.isSafeInteger(total) ? total : null;
+}

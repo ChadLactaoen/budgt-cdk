@@ -36,6 +36,8 @@ export interface FundItem {
 
 export interface TemplateItem {
   PK: string; SK: string;
+  /** The template's own label, e.g. "Mortgage". `nm` is the payee it fills in. */
+  tn: string;
   nm: string;
   amt: number;
   cat: CategoryId;
