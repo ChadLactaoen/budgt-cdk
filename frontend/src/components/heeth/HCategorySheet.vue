@@ -32,6 +32,7 @@ const groups = computed(() => {
       <HInput
         v-model="query"
         icon="search"
+        autofocus
         :placeholder="`Search ${all.length} categories`"
       />
 

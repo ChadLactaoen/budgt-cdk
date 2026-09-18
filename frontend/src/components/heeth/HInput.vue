@@ -5,10 +5,10 @@
  * the design system: the error border is --coral-500 while the error text is
  * --coral-400.
  */
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import HIcon from './HIcon.vue';
 
-defineProps<{
+const props = defineProps<{
   label?: string;
   hint?: string;
   error?: string;
@@ -17,6 +17,7 @@ defineProps<{
   type?: string;
   placeholder?: string;
   id?: string;
+  autofocus?: boolean;
 }>();
 
 // Re-emitted explicitly: native `blur` does not bubble, so a listener bound on
@@ -25,6 +26,13 @@ const emit = defineEmits<{ blur: [] }>();
 
 const model = defineModel<string>({ default: '' });
 const focus = ref(false);
+const el = ref<HTMLInputElement | null>(null);
+
+// Pointer devices only: on a touch screen the focus raises the soft keyboard, which on
+// this phone-shaped app covers the very list the field is there to filter.
+onMounted(() => {
+  if (props.autofocus && window.matchMedia('(pointer: fine)').matches) el.value?.focus();
+});
 
 function onBlur() {
   focus.value = false;
@@ -39,6 +47,7 @@ function onBlur() {
       <HIcon v-if="icon" :name="icon" :size="18" class="h-input__icon" />
       <input
         :id="id"
+        ref="el"
         v-model="model"
         :type="type ?? 'text'"
         :placeholder="placeholder"

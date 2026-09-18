@@ -10,7 +10,7 @@
  */
 import {
   ArrowLeft, Banknote, Calendar, Check, ChevronDown, ChevronLeft, ChevronRight,
-  ChevronsDown, Clock, Equal, Eye, EyeOff, Info, Lock, Menu, Music, OctagonAlert, PencilLine,
+  ChevronsDown, ChevronsUp, Clock, Equal, Eye, EyeOff, Info, Lock, Menu, Music, OctagonAlert, PencilLine,
   PiggyBank, ReceiptText, Repeat, Search, Shapes, ShoppingBasket, ShoppingBag, Store,
   Target, Trash2, TrendingDown, TriangleAlert, Wallet, X,
 } from 'lucide-vue-next';
@@ -26,6 +26,7 @@ const GLYPHS: Record<string, Component> = {
   'chevron-left': ChevronLeft,
   'chevron-right': ChevronRight,
   'chevrons-down': ChevronsDown,
+  'chevrons-up': ChevronsUp,
   clock: Clock,
   equal: Equal,
   eye: Eye,
