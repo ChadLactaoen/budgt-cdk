@@ -119,7 +119,12 @@ const loading = ref(true);
 const saving = ref(false);
 const error = ref('');
 
-const categories = allCategories().filter((c) => c.active);
+/** Retired categories stay hidden, unless this period still allocates to or spends in one. */
+const categories = computed(() =>
+  allCategories().filter(
+    (c) => c.active || alloc.value[c.id] !== undefined || (spent.value[c.id] ?? 0) !== 0,
+  ),
+);
 
 onMounted(load);
 
@@ -162,7 +167,6 @@ async function loadExisting(month: string) {
 
   const draft: Partial<Record<CategoryId, string>> = {};
   for (const a of data.allocations) draft[a.cat] = centsToInput(a.amt);
-  alloc.value = draft;
 
   // Same exclusion the period view makes: a fund withdrawal was budgeted in the month
   // it was deposited, so counting it again here would double it.
@@ -171,6 +175,16 @@ async function loadExisting(month: string) {
     if (t.src) continue;
     booked[t.cat] = (booked[t.cat] ?? 0) + t.amt;
   }
+
+  // A category can carry transactions without carrying an allocation — the period view
+  // already shows it at a limit of zero. Surface it here too, at 0.00, so the screen that
+  // can fix the allocation stops being the one screen that hides the problem. A zero row
+  // is dropped again by `save`, so it persists only once the user gives it an amount.
+  for (const [cat, amt] of Object.entries(booked) as Array<[CategoryId, number]>) {
+    if (amt !== 0 && draft[cat] === undefined) draft[cat] = centsToInput(0);
+  }
+
+  alloc.value = draft;
   spent.value = booked;
   transactionCount.value = data.transactions.length;
 }
@@ -245,6 +259,7 @@ interface Row {
   overspent: boolean;
   showMatch: boolean;
   showAbsorb: boolean;
+  showRelease: boolean;
 }
 
 interface Group {
@@ -264,7 +279,7 @@ const ABSORBER: CategoryId = 'MISC_OTHER';
 
 const groups = computed<Group[]>(() =>
   PARENTS.map((pt) => {
-    const cats = categories.filter((c) => c.pt === pt);
+    const cats = categories.value.filter((c) => c.pt === pt);
     let subtotal = 0;
     let spentSum = 0;
     let count = 0;
@@ -293,6 +308,10 @@ const groups = computed<Group[]>(() =>
           overspent: editing.value && value !== undefined && booked > cents,
           showMatch: editing.value && booked > 0 && booked !== cents,
           showAbsorb: c.id === ABSORBER && left.value > 0,
+          // The mirror of absorb, and the only row it makes sense to claw back from.
+          // Leaving it overspent is fine; taking it below zero is not, so the button
+          // only offers what this row actually has to give.
+          showRelease: c.id === ABSORBER && left.value < 0 && cents + left.value >= 0,
         };
       });
 
@@ -322,7 +341,9 @@ function matchRow(row: Row) {
   alloc.value[row.id] = centsToInput(row.spent);
 }
 
-function absorbRow(row: Row) {
+/** Settles the whole difference on one row. `left` carries the sign, so one sum both
+ *  takes an unallocated remainder and gives back an over-allocation. */
+function balanceRow(row: Row) {
   alloc.value[row.id] = centsToInput(row.cents + left.value);
 }
 
@@ -558,10 +579,19 @@ async function save() {
                       v-if="row.showAbsorb"
                       type="button"
                       class="absorb heeth-caps"
-                      @click="absorbRow(row)"
+                      @click="balanceRow(row)"
                     >
                       <HIcon name="chevrons-down" :size="14" />
                       Take {{ money(left) }}
+                    </button>
+                    <button
+                      v-else-if="row.showRelease"
+                      type="button"
+                      class="release heeth-caps"
+                      @click="balanceRow(row)"
+                    >
+                      <HIcon name="chevrons-up" :size="14" />
+                      Remove {{ money(-left) }}
                     </button>
                   </span>
                   <span
@@ -683,10 +713,19 @@ async function save() {
                     v-if="row.showAbsorb"
                     type="button"
                     class="absorb absorb--block heeth-caps"
-                    @click="absorbRow(row)"
+                    @click="balanceRow(row)"
                   >
                     <HIcon name="chevrons-down" :size="16" />
                     Take {{ money(left) }}
+                  </button>
+                  <button
+                    v-else-if="row.showRelease"
+                    type="button"
+                    class="release release--block heeth-caps"
+                    @click="balanceRow(row)"
+                  >
+                    <HIcon name="chevrons-up" :size="16" />
+                    Remove {{ money(-left) }}
                   </button>
                 </div>
               </div>
@@ -980,7 +1019,8 @@ async function save() {
 }
 
 .match,
-.absorb {
+.absorb,
+.release {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -1001,6 +1041,11 @@ async function save() {
   background: var(--lime-900);
   border: var(--bw) solid var(--lime-500);
   color: var(--lime-500);
+}
+.release {
+  background: var(--status-over-bg);
+  border: var(--bw) solid var(--coral-500);
+  color: var(--status-over);
 }
 
 .icon-action {
@@ -1078,7 +1123,8 @@ async function save() {
 .mrow__spent { font-size: var(--fs-label); color: var(--text-faint); }
 .mrow__spent.is-over { color: var(--coral-300); }
 
-.absorb--block {
+.absorb--block,
+.release--block {
   display: flex;
   justify-content: center;
   margin: 0 var(--space-4) 10px;
